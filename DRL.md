@@ -66,3 +66,5 @@ Stochastic Policy : 2
 #### Maximum Entropy MDP
 
 Entropy : measure of uncertainty over random variable X
+
+Lagrangian multiple
