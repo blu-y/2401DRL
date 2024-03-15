@@ -34,9 +34,11 @@ class value_iteration:
                         for action in self.actions:
                             next_state = (i + action[0], j + action[1])
                             if next_state[0] < 0 or next_state[0] >= self.COLS or next_state[1] < 0 or next_state[1] >= self.ROWS or next_state in self.exceptions:
-                                next_state = (i, j)
+                                  next_state = (i, j)
+                            
+                            # next two line is incomplete
                             value = self.transition_prob * self.gamma * v[next_state[0], next_state[1]]
-                            max_value = max(value, max_value)
+                            max_value = max(value, max_value) 
                         _v[i,j] = max_value
                     else: _v[i,j] = self.rewards[(i+1,j+1)]
             v = _v
