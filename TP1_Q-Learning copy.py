@@ -1,8 +1,3 @@
-### Terminal Project 1: Q-Learning
-# 2023320001 윤준영
-# python 3.8.3 / gym 0.26.2
-# numpy 1.24.4 / matplotlib 3.7.5 / pygame = 2.5.2
-
 import gym
 import numpy as np
 import random
@@ -11,14 +6,14 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+# python 3.8.3 / gym 0.26.2 / numpy 1.24.4 / matplotlib 3.7.5
 
 ###################PARAMETERS####################
-m = map_size = 4 # m x m map size               #
+m = map_size = 4                                #
 epsilon = 0.3 # epsilon (0: greedy, 1 random)   #
 sr = 0.8 # success rate                         #
 gamma = 0.9 # discount factor                   #
 alpha = 0.3 # learning rate                     #
-render = True # to see plot                     #
 #################################################
 
 
@@ -50,20 +45,16 @@ def sind_to_mapind(i, m):
 
 def plot(env, k, step, state, Q, action=-1):
     ### PLOT ENVIRONMENT AND Q VALUES
-    if not render: return
-    
-    # plot environment
     state = state[0]
-    plt.figure(1, figsize=(3.5*m, 1.5*m))
+    plt.figure(1, figsize=(3*m, 1.5*m))
     plt.subplot(1, 2, 1)
     plt.cla()
     str = "k: %d, Step: %d, State: %s" % (k, step, state)
     if action >= 0: str += ", Action: %s" % actions[action]
     plt.title(str)
-    plt.axis('off')
     plt.imshow(env.render())
+    plt.axis('off')
 
-    # plot Q values
     plt.figure(1, figsize=(3*m, 2*m))
     plt.subplot(1, 2, 2)
     plt.cla()
@@ -74,14 +65,13 @@ def plot(env, k, step, state, Q, action=-1):
         plt.text(_i*3+3, _j*3+2, round(_s[2], 3), ha='center', va='center', fontsize=2.2*m)
         plt.text(_i*3+2, _j*3+3, round(_s[3], 3), ha='center', va='center', fontsize=2.2*m)
     plt.axis('off')
+    plt.grid(True)
     plt.xlim(0, 3*m)
     plt.ylim(0, 3*m)
-    plt.tight_layout()
     plt.show(block=False)
     plt.pause(0.01)
 
-env = gym.make('FrozenLake-v1', desc=generate_random_map(size=map_size),
-               is_slippery=False, render_mode='rgb_array')
+env = gym.make('FrozenLake-v1', desc=generate_random_map(size=map_size), is_slippery=False, render_mode='rgb_array')
 # 0:Left, 1:Down, 2:Right, 3:Up'
 actions = {0: '←', 1: '↓', 2: '→', 3: '↑'}
 n = env.action_space.n
@@ -95,6 +85,9 @@ while True:
     ### Get initial state
     if step == 0:
         ### check convergence
+        if success/(k+1) > 0.1 and not (Q==_Q).all() and np.sum(abs(_Q-Q)) < 1e-5: 
+            # print(success/(k+1), not (Q==_Q).all(), abs(np.sum(_Q-Q)))
+            break
         s = env.reset()
         s = [s[0], 0.0, False, False, s[-1]]
         plot(env, k, step, s, Q)
@@ -107,11 +100,7 @@ while True:
     # if not terminal, target is reward + gamma*max(Q(s',a'))
     if s_[2]:
         # check success, reset step, increase k, _Q <- Q
-        if s_[1] == 1: 
-            success += 1
-            if success/(k+1) > 0.1 and not (Q==_Q).all() and np.sum(abs(_Q-Q)) < 1e-5: 
-                # print(success/(k+1), not (Q==_Q).all(), abs(np.sum(_Q-Q)))
-                break
+        if s_[1] == 1: success += 1
         target = s_[1]
         step = 0
         k += 1
@@ -119,19 +108,15 @@ while True:
     else: 
         target = s[1] + gamma*np.max(Q[s_[0]])
         step += 1
+    print('k: %d, step: %d' %(k, step))
     ### Update Q table
     # Q(s,a) = (1-alpha)*Q(s,a) + alpha*target
     # if actually moved (to avoid wall)
     if s[0] != s_[0]:
         Q[s[0]][a] = (1-alpha)*_Q[s[0]][a] + alpha*target
-        if target > 0:
-            print('k=%d, step=%d\tQ(%d,%d): %.3f -> %.3f'
-                  %(k, step, s[0], a, _Q[s[0]][a], Q[s[0]][a]))
+        print('\tQ(%d, %d) updated: %.3f to %.3f' %(s[0], a, _Q[s[0]][a], Q[s[0]][a]))
     # set s <- s'
     s = s_
     plot(env, k, step, s_, Q, a)
-
-plot(env, k, step, s_, Q, a)
-print(Q)
 print('Converged!')
 plt.show(block=True)
