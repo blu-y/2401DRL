@@ -87,7 +87,7 @@ actions = {0: '←', 1: '↓', 2: '→', 3: '↑'}
 n = env.action_space.n
 # Initialize Q-table
 Q = np.zeros((map_size**2, n))
-_Q = Q.copy()
+Q_ = Q.copy()
 k = 0
 step = 0
 success = 0
@@ -106,16 +106,16 @@ while True:
     # if terminal state, target is reward
     # if not terminal, target is reward + gamma*max(Q(s',a'))
     if s_[2]:
-        # check success, reset step, increase k, _Q <- Q
+        # check success, reset step, increase k
         if s_[1] == 1: 
             success += 1
-            if success/(k+1) > 0.1 and not (Q==_Q).all() and np.sum(abs(_Q-Q)) < 1e-5: 
-                # print(success/(k+1), not (Q==_Q).all(), abs(np.sum(_Q-Q)))
+            if success/(k+1) > 0.1 and not (Q==Q_).all() and np.sum(abs(Q-Q_)) < 1e-5: 
+                # print(success/(k+1), not (Q==Q_).all(), np.sum(abs(Q-Q)))
                 break
         target = s_[1]
         step = 0
         k += 1
-        _Q = Q.copy()
+        Q = Q_.copy()
     else: 
         target = s[1] + gamma*np.max(Q[s_[0]])
         step += 1
@@ -123,15 +123,15 @@ while True:
     # Q(s,a) = (1-alpha)*Q(s,a) + alpha*target
     # if actually moved (to avoid wall)
     if s[0] != s_[0]:
-        Q[s[0]][a] = (1-alpha)*_Q[s[0]][a] + alpha*target
+        Q_[s[0]][a] = (1-alpha)*Q[s[0]][a] + alpha*target
         if target > 0:
-            print('k=%d, step=%d\tQ(%d,%d): %.3f -> %.3f'
-                  %(k, step, s[0], a, _Q[s[0]][a], Q[s[0]][a]))
+            print('k=%d, step=%d\tQ\'(%d,%d): %.3f -> %.3f'
+                  %(k, step, s[0], a, Q[s[0]][a], Q_[s[0]][a]))
     # set s <- s'
     s = s_
     plot(env, k, step, s_, Q, a)
 
-plot(env, k, step, s_, Q, a)
-print(Q)
+plot(env, k, step, s_, Q_, a)
+print(Q_)
 print('Converged!')
 plt.show(block=True)
