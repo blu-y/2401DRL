@@ -79,3 +79,7 @@ Lagrangian multiple
 ## Policy Gradient
 #### Likelihood Ratio Gradient Estimate
 no bias : original과 estimation의 expectation이 같다.
+#### Baseline Substraction
+b가 theta의 함수가 아니면,,
+#### Baseline Choices
+-> state-dependent expected return
