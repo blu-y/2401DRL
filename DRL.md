@@ -83,3 +83,5 @@ no bias : original과 estimation의 expectation이 같다.
 b가 theta의 함수가 아니면,,
 #### Baseline Choices
 -> state-dependent expected return
+#### Policy Gradient Algorithm
+2 NNs : \pi_\theta, Value_\phi
