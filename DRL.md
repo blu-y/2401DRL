@@ -68,3 +68,14 @@ Stochastic Policy : 2
 Entropy : measure of uncertainty over random variable X
 
 Lagrangian multiple
+
+
+
+
+
+
+
+
+## Policy Gradient
+#### Likelihood Ratio Gradient Estimate
+no bias : original과 estimation의 expectation이 같다.
