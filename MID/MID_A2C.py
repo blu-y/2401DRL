@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     # Note: the actor has a slower learning rate so that the value targets become
     # more stationary and are theirfore easier to estimate for the critic
-    
+
     # environment setup
     if randomize_domain:
         envs = gym.vector.AsyncVectorEnv(
@@ -220,8 +220,8 @@ if __name__ == "__main__":
     else:
         envs = gym.vector.make("Swimmer-v4", 
                             #    xml_file="swimmer.xml", 
-                               num_envs=n_envs, 
-                               max_episode_steps=600)
+                                num_envs=n_envs, 
+                                max_episode_steps=600)
 
 
     obs_shape = envs.single_observation_space.shape[0]
@@ -383,4 +383,4 @@ if __name__ == "__main__":
         agent.critic.load_state_dict(torch.load(critic_weights_path))
         agent.actor.eval()
         agent.critic.eval()
-    
+

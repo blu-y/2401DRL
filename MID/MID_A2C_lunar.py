@@ -267,7 +267,8 @@ if __name__ == "__main__":
     action_shape = envs.single_action_space.n
 
     # set the device
-    use_cuda = False
+    
+    use_cuda = True
     if use_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
