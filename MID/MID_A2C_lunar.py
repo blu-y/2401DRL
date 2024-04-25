@@ -223,7 +223,7 @@ if __name__ == "__main__":
     )
     # environment hyperparams
     n_envs = 10
-    n_updates = 3000
+    n_updates = 500
     n_steps_per_update = 128
     randomize_domain = False
 

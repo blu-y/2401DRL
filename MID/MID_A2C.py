@@ -185,44 +185,17 @@ class A2C(nn.Module):
         actor_loss.backward()
         self.actor_optim.step()
 
-if __name__ == "__main__":
-    # environment hyperparams
-    n_envs = 1
-    n_updates = 100
-    n_steps_per_update = 128
-
-    # agent hyperparams
-    gamma = 0.999
-    lam = 0.95  # hyperparameter for GAE
-    ent_coef = 0.01  # coefficient for the entropy bonus (to encourage exploration)
-    actor_lr = 0.001
-    critic_lr = 0.005
-
-    # Note: the actor has a slower learning rate so that the value targets become
-    # more stationary and are theirfore easier to estimate for the critic
-
-    # environment setup
-    envs = gym.vector.AsyncVectorEnv(
-        [
-            lambda: gym.make(
-                "Walker2d-v4",
-                # xml_file="swimmer.xml",
-                forward_reward_weight=1.0,
-                ctrl_cost_weight=1e-4,
-                reset_noise_scale=0.1,
-                exclude_current_positions_from_observation=True,
-                max_episode_steps=600,
-            )
-            for i in range(n_envs)
-        ]
-    )
-
-
+def train_A2C():
+    
     obs_shape = envs.single_observation_space.shape[0]
     action_shape = envs.single_action_space.shape[0]
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    # set the device
+    use_cuda = True
+    if use_cuda:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
 
     # init the agent
     agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr, n_envs)
@@ -289,6 +262,8 @@ if __name__ == "__main__":
         actor_losses.append(actor_loss.detach().cpu().numpy())
         entropies.append(entropy.detach().mean().cpu().numpy())
 
+def plot_result():
+
     """ plot the results """
 
     # %matplotlib inline
@@ -350,27 +325,65 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    save_weights = True
-    load_weights = False
-
-    actor_weights_path = "weights/actor_weights.h5"
-    critic_weights_path = "weights/critic_weights.h5"
+def save_weights():
 
     if not os.path.exists("weights"):
         os.mkdir("weights")
-
     """ save network weights """
     if save_weights:
         torch.save(agent.actor.state_dict(), actor_weights_path)
         torch.save(agent.critic.state_dict(), critic_weights_path)
 
-
+def load_weights():
     """ load network weights """
     if load_weights:
         agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr)
-
         agent.actor.load_state_dict(torch.load(actor_weights_path))
         agent.critic.load_state_dict(torch.load(critic_weights_path))
         agent.actor.eval()
         agent.critic.eval()
+
+if __name__ == "__main__":
+
+
+    # environment hyperparams
+    n_envs = 1
+    n_updates = 10
+    n_steps_per_update = 2
+    randomize_domain = True
+    # agent hyperparams
+    gamma = 0.999
+    lam = 0.95  # hyperparameter for GAE
+    ent_coef = 0.01  # coefficient for the entropy bonus (to encourage exploration)
+    actor_lr = 0.001
+    critic_lr = 0.005
+    envs = gym.vector.AsyncVectorEnv(
+        [
+            lambda: gym.make(
+                "Walker2d-v4",
+                forward_reward_weight=1.0,
+                ctrl_cost_weight=1e-3,
+                healthy_reward=1.0,
+                terminate_when_unhealthy=True,
+                healthy_z_range=(0.8, 2),
+                healthy_angle_range=(-1, 1),
+                reset_noise_scale=5e-3,
+                exclude_current_positions_from_observation=True,
+                max_episode_steps=600,
+            )
+            for i in range(n_envs)
+        ]
+    )
+
+    train_A2C()
+    plot_result()
+
+    save_weights = True
+    load_weights = False
+    actor_weights_path = "weights/actor_weights.h5"
+    critic_weights_path = "weights/critic_weights.h5"
+
+    save_weights()
+    load_weights()
+
 

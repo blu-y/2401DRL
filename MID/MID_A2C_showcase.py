@@ -179,72 +179,36 @@ class A2C(nn.Module):
         actor_loss.backward()
         self.actor_optim.step()
 
-load_weights = True
+if __name__ == "__main__":
+    load_weights = True
 
-actor_weights_path = "weights/actor_weights.h5"
-critic_weights_path = "weights/critic_weights.h5"
+    actor_weights_path = "weights/actor_weights.h5"
+    critic_weights_path = "weights/critic_weights.h5"
 
-envs = gym.vector.make("LunarLander-v2", num_envs=3, max_episode_steps=600)
-envs = gym.vector.AsyncVectorEnv(
-    [
-        lambda: gym.make(
-            "LunarLander-v2",
-            gravity=-10.0,
-            enable_wind=True,
-            wind_power=15.0,
-            turbulence_power=1.5,
-            max_episode_steps=600,
-        ),
-        lambda: gym.make(
-            "LunarLander-v2",
-            gravity=-9.8,
-            enable_wind=True,
-            wind_power=10.0,
-            turbulence_power=1.3,
-            max_episode_steps=600,
-        ),
-        lambda: gym.make(
-            "LunarLander-v2", gravity=-7.0, enable_wind=False, max_episode_steps=600
-        ),
-    ]
-)
-envs = gym.vector.AsyncVectorEnv(
-    [
-        lambda: gym.make(
-            "LunarLander-v2",
-            gravity=np.clip(
-                np.random.normal(loc=-10.0, scale=1.0), a_min=-11.99, a_max=-0.01
+    envs = gym.vector.make("LunarLander-v2", num_envs=3, max_episode_steps=600)
+    envs = gym.vector.AsyncVectorEnv(
+        [
+            lambda: gym.make(
+                "LunarLander-v2",
+                gravity=-10.0,
+                enable_wind=True,
+                wind_power=15.0,
+                turbulence_power=1.5,
+                max_episode_steps=600,
             ),
-            enable_wind=np.random.choice([True, False]),
-            wind_power=np.clip(
-                np.random.normal(loc=15.0, scale=1.0), a_min=0.01, a_max=19.99
+            lambda: gym.make(
+                "LunarLander-v2",
+                gravity=-9.8,
+                enable_wind=True,
+                wind_power=10.0,
+                turbulence_power=1.3,
+                max_episode_steps=600,
             ),
-            turbulence_power=np.clip(
-                np.random.normal(loc=1.5, scale=0.5), a_min=0.01, a_max=1.99
+            lambda: gym.make(
+                "LunarLander-v2", gravity=-7.0, enable_wind=False, max_episode_steps=600
             ),
-            max_episode_steps=600,
-        )
-        for i in range(3)
-    ]
-)
-# environment hyperparams
-n_envs = 10
-n_updates = 1000
-n_steps_per_update = 128
-randomize_domain = False
-
-# agent hyperparams
-gamma = 0.999
-lam = 0.95  # hyperparameter for GAE
-ent_coef = 0.01  # coefficient for the entropy bonus (to encourage exploration)
-actor_lr = 0.001
-critic_lr = 0.005
-
-# Note: the actor has a slower learning rate so that the value targets become
-# more stationary and are theirfore easier to estimate for the critic
-
-# environment setup
-if randomize_domain:
+        ]
+    )
     envs = gym.vector.AsyncVectorEnv(
         [
             lambda: gym.make(
@@ -261,86 +225,123 @@ if randomize_domain:
                 ),
                 max_episode_steps=600,
             )
-            for i in range(n_envs)
+            for i in range(3)
         ]
     )
+    # environment hyperparams
+    n_envs = 10
+    n_updates = 1000
+    n_steps_per_update = 128
+    randomize_domain = False
 
-else:
-    envs = gym.vector.make("LunarLander-v2", num_envs=n_envs, max_episode_steps=600)
+    # agent hyperparams
+    gamma = 0.999
+    lam = 0.95  # hyperparameter for GAE
+    ent_coef = 0.01  # coefficient for the entropy bonus (to encourage exploration)
+    actor_lr = 0.001
+    critic_lr = 0.005
 
-obs_shape = envs.single_observation_space.shape[0]
-action_shape = envs.single_action_space.n
+    # Note: the actor has a slower learning rate so that the value targets become
+    # more stationary and are theirfore easier to estimate for the critic
 
-# set the device
-use_cuda = False
-if use_cuda:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-else:
-    device = torch.device("cpu")
+    # environment setup
+    if randomize_domain:
+        envs = gym.vector.AsyncVectorEnv(
+            [
+                lambda: gym.make(
+                    "LunarLander-v2",
+                    gravity=np.clip(
+                        np.random.normal(loc=-10.0, scale=1.0), a_min=-11.99, a_max=-0.01
+                    ),
+                    enable_wind=np.random.choice([True, False]),
+                    wind_power=np.clip(
+                        np.random.normal(loc=15.0, scale=1.0), a_min=0.01, a_max=19.99
+                    ),
+                    turbulence_power=np.clip(
+                        np.random.normal(loc=1.5, scale=0.5), a_min=0.01, a_max=1.99
+                    ),
+                    max_episode_steps=600,
+                )
+                for i in range(n_envs)
+            ]
+        )
 
-# init the agent
-agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr, n_envs)
+    else:
+        envs = gym.vector.make("LunarLander-v2", num_envs=n_envs, max_episode_steps=600)
 
-if not os.path.exists("weights"):
-    os.mkdir("weights")
+    obs_shape = envs.single_observation_space.shape[0]
+    action_shape = envs.single_action_space.n
 
-""" load network weights """
-if load_weights:
+    # set the device
+    use_cuda = False
+    if use_cuda:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+
+    # init the agent
     agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr, n_envs)
 
-    agent.actor.load_state_dict(torch.load(actor_weights_path))
-    agent.critic.load_state_dict(torch.load(critic_weights_path))
-    agent.actor.eval()
-    agent.critic.eval()
+    if not os.path.exists("weights"):
+        os.mkdir("weights")
+
+    """ load network weights """
+    if load_weights:
+        agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr, n_envs)
+
+        agent.actor.load_state_dict(torch.load(actor_weights_path))
+        agent.critic.load_state_dict(torch.load(critic_weights_path))
+        agent.actor.eval()
+        agent.critic.eval()
 
 
-""" play a couple of showcase episodes """
+    """ play a couple of showcase episodes """
 
-n_showcase_episodes = 30
+    n_showcase_episodes = 5
 
-for episode in range(n_showcase_episodes):
-    print(f"starting episode {episode}...")
+    for episode in range(n_showcase_episodes):
+        print(f"starting episode {episode}...")
 
-    # create a new sample environment to get new random parameters
-    if randomize_domain:
-        env = gym.make(
-            "LunarLander-v2",
-            render_mode="human",
-            gravity=np.clip(
-                np.random.normal(loc=-10.0, scale=2.0), a_min=-11.99, a_max=-0.01
-            ),
-            enable_wind=np.random.choice([True, False]),
-            wind_power=np.clip(
-                np.random.normal(loc=15.0, scale=2.0), a_min=0.01, a_max=19.99
-            ),
-            turbulence_power=np.clip(
-                np.random.normal(loc=1.5, scale=1.0), a_min=0.01, a_max=1.99
-            ),
-            max_episode_steps=500,
-        )
-    else:
-        env = gym.make("LunarLander-v2", render_mode="human", max_episode_steps=500)
+        # create a new sample environment to get new random parameters
+        if randomize_domain:
+            env = gym.make(
+                "LunarLander-v2",
+                render_mode="human",
+                gravity=np.clip(
+                    np.random.normal(loc=-10.0, scale=2.0), a_min=-11.99, a_max=-0.01
+                ),
+                enable_wind=np.random.choice([True, False]),
+                wind_power=np.clip(
+                    np.random.normal(loc=15.0, scale=2.0), a_min=0.01, a_max=19.99
+                ),
+                turbulence_power=np.clip(
+                    np.random.normal(loc=1.5, scale=1.0), a_min=0.01, a_max=1.99
+                ),
+                max_episode_steps=500,
+            )
+        else:
+            env = gym.make("LunarLander-v2", render_mode="human", max_episode_steps=500)
 
-    # get an initial state
-    state, info = env.reset()
+        # get an initial state
+        state, info = env.reset()
 
-    # play one episode
-    done = False
-    while not done:
-        # select an action A_{t} using S_{t} as input for the agent
-        with torch.no_grad():
-            action, _, _, _ = agent.select_action(state[None, :])
+        # play one episode
+        done = False
+        while not done:
+            # select an action A_{t} using S_{t} as input for the agent
+            with torch.no_grad():
+                action, _, _, _ = agent.select_action(state[None, :])
 
-        # perform the action A_{t} in the environment to get S_{t+1} and R_{t+1}
-        state, reward, terminated, truncated, info = env.step(action.item())
+            # perform the action A_{t} in the environment to get S_{t+1} and R_{t+1}
+            state, reward, terminated, truncated, info = env.step(action.item())
 
-        # update if the environment is done
-        done = terminated or truncated
-        if done: print(reward)
+            # update if the environment is done
+            done = terminated or truncated
+            if done: print(reward)
 
-env.close()
+    env.close()
 
-# from gymnasium.utils.play import play
-#
-# play(gym.make('LunarLander-v2', render_mode='rgb_array'),
-#     keys_to_action={'w': 2, 'a': 1, 'd': 3}, noop=0)
+    # from gymnasium.utils.play import play
+    #
+    # play(gym.make('LunarLander-v2', render_mode='rgb_array'),
+    #     keys_to_action={'w': 2, 'a': 1, 'd': 3}, noop=0)
