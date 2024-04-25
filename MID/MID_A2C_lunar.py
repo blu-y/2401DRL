@@ -274,6 +274,8 @@ if __name__ == "__main__":
     else:
         device = torch.device("cpu")
 
+    print(f"Using device: {device}")
+
     # init the agent
     agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr, n_envs)
     # create a wrapper environment to save episode returns and episode lengths

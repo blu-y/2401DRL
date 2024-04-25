@@ -16,6 +16,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
+import torch.distributions as D
 from tqdm import tqdm
 import gymnasium as gym
 
@@ -104,14 +105,15 @@ class A2C(nn.Module):
             action_log_probs: A tensor with the log-probs of the actions, with shape [n_steps_per_update, n_envs].
             state_values: A tensor with the state values, with shape [n_steps_per_update, n_envs].
         """
+        
         state_values, action_logits = self.forward(x)
-        action_pd = torch.distributions.Categorical(
-            logits=action_logits
-        )  # implicitly uses softmax
-        actions = action_pd.sample()
-        action_log_probs = action_pd.log_prob(actions)
-        entropy = action_pd.entropy()
-        return (actions, action_log_probs, state_values, entropy)
+        mu = torch.tensor([0.0])
+        sigma = torch.tensor([1.0])
+        normal_dist = D.Normal(mu, sigma)# implicitly uses softmax
+        sampled_value = normal_dist.rsample()
+        action_log_probs = normal_dist.log_prob(sampled_value)
+        entropy = normal_dist.entropy()
+        return (sampled_value, action_log_probs, state_values, entropy)
 
     def get_losses(
         self,
@@ -185,10 +187,9 @@ class A2C(nn.Module):
 
 if __name__ == "__main__":
     # environment hyperparams
-    n_envs = 10
-    n_updates = 3000
+    n_envs = 1
+    n_updates = 100
     n_steps_per_update = 128
-    randomize_domain = True
 
     # agent hyperparams
     gamma = 0.999
@@ -201,38 +202,27 @@ if __name__ == "__main__":
     # more stationary and are theirfore easier to estimate for the critic
 
     # environment setup
-    if randomize_domain:
-        envs = gym.vector.AsyncVectorEnv(
-            [
-                lambda: gym.make(
-                    "Swimmer-v4",
-                    # xml_file="swimmer.xml",
-                    forward_reward_weight=1.0,
-                    ctrl_cost_weight=1e-4,
-                    reset_noise_scale=0.1,
-                    exclude_current_positions_from_observation=True,
-                    max_episode_steps=600,
-                )
-                for i in range(n_envs)
-            ]
-        )
-
-    else:
-        envs = gym.vector.make("Swimmer-v4", 
-                            #    xml_file="swimmer.xml", 
-                                num_envs=n_envs, 
-                                max_episode_steps=600)
+    envs = gym.vector.AsyncVectorEnv(
+        [
+            lambda: gym.make(
+                "Walker2d-v4",
+                # xml_file="swimmer.xml",
+                forward_reward_weight=1.0,
+                ctrl_cost_weight=1e-4,
+                reset_noise_scale=0.1,
+                exclude_current_positions_from_observation=True,
+                max_episode_steps=600,
+            )
+            for i in range(n_envs)
+        ]
+    )
 
 
     obs_shape = envs.single_observation_space.shape[0]
     action_shape = envs.single_action_space.shape[0]
 
-    # set the device
-    use_cuda = False
-    if use_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
     # init the agent
     agent = A2C(obs_shape, action_shape, device, critic_lr, actor_lr, n_envs)
