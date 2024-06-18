@@ -77,13 +77,10 @@ class TicTacToeState:
                 return 1 if player == 1 else -1
             if self.board[0][i] == self.board[1][i] == self.board[2][i] == 'X':
                 return 1 if player == 1 else -1
-
         if self.board[0][0] == self.board[1][1] == self.board[2][2] == 'X':
             return 1 if player == 1 else -1
-
         if self.board[0][2] == self.board[1][1] == self.board[2][0] == 'X' :
             return 1 if player == 1 else -1
-
 
         # Determine the result of the game from the perspective of the player
         for i in range(3):
@@ -91,19 +88,15 @@ class TicTacToeState:
                 return 1 if player == -1 else -1
             if self.board[0][i] == self.board[1][i] == self.board[2][i] == 'O':
                 return 1 if player == -1 else -1
-
         if self.board[0][0] == self.board[1][1] == self.board[2][2] == 'O':
             return 1 if player == -1 else -1
-
         if self.board[0][2] == self.board[1][1] == self.board[2][0] == 'O':
             return 1 if player == -1 else -1
-
         if all(self.board[r][c] != ' ' for r in range(3) for c in range(3)):
             return 0  # Draw
         
         return None  # Ongoing game
 
-        
     def clone(self):
         return TicTacToeState([row[:] for row in self.board], self.player)
     
@@ -138,7 +131,6 @@ class MCTS:
             if not state.is_terminal():
                 while not state.is_terminal():
                     state.do_move(random.choice(state.get_legal_moves()))
-
 
             # Backpropagation
             result = state.result(-1)
